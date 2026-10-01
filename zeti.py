@@ -58,7 +58,12 @@ def find_port(candidates=None, baud=115200, timeout=1.5):
                 buf = _drain(s, timeout)
                 if b"Command:" in buf:
                     return dev
-        except (serial.SerialException, OSError):
+        except Exception:
+            # Any port that cannot be opened, configured or read is simply not
+            # ours - a modem, a console port, the scanner interface. Catch
+            # broadly on purpose: letting one odd port's errno escape here
+            # replaces the clear "no ZETI port found" with something like
+            # "[Errno 22] Invalid argument" at the API boundary.
             continue
     return None
 

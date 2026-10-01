@@ -168,17 +168,59 @@ Environment variables, all optional:
 
 ---
 
-## Run as a service
+## Start at boot
+
+One command. It fills the unit in with the current user, this directory and the
+python on `PATH` (or the repo's `venv/`), then enables and starts the service:
 
 ```bash
-sudo cp rfid-api.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now rfid-api
-journalctl -u rfid-api -f
+./install.sh
 ```
 
-Edit the `Environment=` lines in the unit first — at minimum `User`,
-`WorkingDirectory`, and whether `MQTT_BROKER` should be set.
+From then on the Pi boots straight into the API and waits for requests — nothing
+to launch by hand:
+
+```bash
+curl http://<pi-ip>:8080/api/health
+curl "http://<pi-ip>:8080/api/read?ms=1000"
+```
+
+Day-to-day:
+
+```bash
+sudo systemctl status rfid-api
+sudo systemctl restart rfid-api
+journalctl -u rfid-api -f        # live log
+```
+
+To change a setting, edit the `Environment=` lines in
+`/etc/systemd/system/rfid-api.service` and `sudo systemctl restart rfid-api`.
+`./install.sh` is safe to re-run; it rewrites that file from the template here,
+so put lasting changes in `rfid-api.service` in the repo.
+
+### What it does about the sled not being ready
+
+At boot systemd can start the service before the sled has finished enumerating on
+USB, and the sled **drops off USB entirely whenever it sleeps**. Neither is
+treated as a failure: the server starts anyway, says so in the log, and connects
+on the first request. A request that arrives while the sled is away gets
+
+```json
+{"success":false,"error":"READER_DISCONNECTED","detail":"no ZETI serial port found - is the sled plugged in and awake?"}
+```
+
+with HTTP 503, and the next request reconnects — including re-detecting the port,
+because the `/dev/ttyACM` number can change.
+
+`Restart=always` covers the process dying for any other reason.
+
+### Serving
+
+With `waitress` installed (it is in `requirements.txt`, pure Python, no compiler
+needed) the service runs on it. Without it the code falls back to Flask's
+development server, which works but warns that it is not meant for this. Four
+threads is plenty — one reader behind one lock means reads serialise anyway, and
+the spare threads keep `/health` answering during a read.
 
 ---
 
@@ -187,9 +229,10 @@ Edit the `Environment=` lines in the unit first — at minimum `User`,
 ```
 RFID_Reader/
 ├── zeti.py              ZETI protocol over pyserial - the only reader code
-├── rfid_api_server.py   Flask REST + MQTT, one reader behind one lock
+├── rfid_api_server.py   REST + MQTT, one reader behind one lock
 ├── rfid_cli.py          test/CLI tool, also the --sweep power finder
-├── rfid-api.service     systemd unit
+├── install.sh           install the boot service
+├── rfid-api.service     systemd unit template (__USER__, __DIR__, __PYTHON__)
 └── requirements.txt
 ```
 

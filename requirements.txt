@@ -1,3 +1,4 @@
 pyserial>=3.5
 Flask>=2.0
+waitress>=2.1
 paho-mqtt>=1.6

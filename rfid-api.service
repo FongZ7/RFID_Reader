@@ -1,24 +1,41 @@
 [Unit]
-Description=RFD4031 RFID API (REST + MQTT)
+Description=RFD4031 RFID API (REST)
+Documentation=https://github.com/FongZ7/RFID_Reader
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/RFID_Reader
-# leave RFID_DEVICE unset to autodetect - the sled's /dev/ttyACM number moves
+User=__USER__
+Group=dialout
+WorkingDirectory=__DIR__
+
+# print() reaches journalctl immediately instead of sitting in a buffer
+Environment=PYTHONUNBUFFERED=1
+
+# Leave RFID_DEVICE unset: the sled's /dev/ttyACM number moves between plug-ins
+# and both of its ports look alike, so the right one is detected at runtime.
+#Environment=RFID_DEVICE=/dev/ttyACM0
 Environment=RFID_MS=1000
-Environment=RFID_DBM=10
+Environment=RFID_DBM=25
 Environment=RFID_HOST=0.0.0.0
 Environment=RFID_PORT=8080
-# MQTT is off unless a broker is named
-Environment=MQTT_BROKER=ns.artroninnovative.co.th
-Environment=MQTT_PORT=1883
-Environment=MQTT_BASE=rfid
-ExecStart=/usr/bin/python3 /home/pi/RFID_Reader/rfid_api_server.py
+#Environment=RFID_MINRSSI=-60
+
+# REST only. Uncomment to also answer on MQTT.
+#Environment=MQTT_BROKER=ns.artroninnovative.co.th
+#Environment=MQTT_PORT=1883
+#Environment=MQTT_BASE=rfid
+
+ExecStart=__PYTHON__ __DIR__/rfid_api_server.py
+
+# The sled may not have enumerated on USB yet at boot, and it drops off USB when
+# it sleeps. The server starts regardless and connects on the first request, so
+# there is nothing to wait for here.
 Restart=always
 RestartSec=5
+TimeoutStopSec=10
+
 StandardOutput=journal
 StandardError=journal
 

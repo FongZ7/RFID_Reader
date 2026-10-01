@@ -18,9 +18,11 @@ Config comes from the environment (see README):
 MQTT is only started when MQTT_BROKER is set.
 """
 
+import atexit
 import json
 import os
 import platform
+import signal
 import threading
 import time
 from datetime import datetime
@@ -249,12 +251,15 @@ def main():
     if MIN_RSSI is not None:
         log("  minRssi  : %d" % MIN_RSSI)
 
+    # A failure here is not fatal: at boot systemd can start us before the sled
+    # has finished enumerating on USB, and the sled drops off USB whenever it
+    # sleeps. Every request reconnects, so serve either way.
     try:
         with _lock:
             _ensure()
         log("  reader   : connected (%s on %s)" % (_reader.model(), _reader.port))
     except Exception as e:
-        log("  reader   : NOT connected - %s" % e)
+        log("  reader   : not ready yet (%s) - will connect on first request" % e)
 
     if MQTT_BROKER:
         log("  mqtt     : %s:%d  %s/read -> %s/result" % (MQTT_BROKER, MQTT_PORT, MQTT_BASE, MQTT_BASE))
@@ -262,7 +267,48 @@ def main():
     else:
         log("  mqtt     : off (set MQTT_BROKER to enable)")
 
-    app.run(host=HOST, port=PORT, threaded=True)
+    atexit.register(_shutdown)
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        try:
+            signal.signal(sig, _on_signal)
+        except (ValueError, AttributeError, OSError):
+            pass                                        # not the main thread, or no such signal
+
+    serve()
+
+
+def _shutdown():
+    """Release the serial port so the next start finds it free."""
+    try:
+        _reader.close()
+    except Exception:
+        pass
+
+
+def _on_signal(signum, frame):
+    log("signal %d - stopping" % signum)
+    _shutdown()
+    raise SystemExit(0)
+
+
+def serve():
+    """waitress when it is installed, Flask's dev server otherwise.
+
+    This runs as a boot service, so the dev server is the wrong default: it warns
+    about exactly that, and it is single-threaded per connection by default.
+    waitress is pure Python, so it installs on a Pi with no compiler.
+    """
+    try:
+        from waitress import serve as waitress_serve
+    except ImportError:
+        log("  server   : Flask dev server (pip install waitress for the production one)")
+        app.run(host=HOST, port=PORT, threaded=True)
+        return
+    # One reader behind one lock means requests serialise anyway; a handful of
+    # threads is plenty and keeps /health responsive during a read.
+    log("  server   : waitress")
+    log("\nready.  waiting for requests.")
+    waitress_serve(app, host=HOST, port=PORT, threads=4, _quiet=True)
 
 
 if __name__ == "__main__":
