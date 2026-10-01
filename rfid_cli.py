@@ -7,6 +7,7 @@
     python rfid_cli.py --info               port, model and firmware versions
     python rfid_cli.py --ports              list serial ports and say which one is ZETI
     python rfid_cli.py --device /dev/ttyACM0
+    python rfid_cli.py --raw gr             any raw ZETI command - here, the RF region
 
 Use --sweep to find the antenna power that sees only the tag you care about:
 
@@ -33,6 +34,9 @@ def main():
     ap.add_argument("--info", action="store_true")
     ap.add_argument("--ports", action="store_true")
     ap.add_argument("--sweep", action="store_true")
+    ap.add_argument("--raw", metavar="CMD",
+                    help="send one raw ZETI command and print the reply, "
+                         "e.g. --raw gr (get region), --raw ga (supported regions)")
     a = ap.parse_args()
 
     if a.ports:
@@ -52,6 +56,13 @@ def main():
             print("model   : %s" % reader.model())
             p = reader.get_power_dbm()
             print("power   : %s" % ("%.1f dBm" % p if p is not None else "?"))
+
+            if a.raw:
+                # 'gr' and 'ga' answer with a long multi-line channel list, so
+                # give the sled longer than the default quiet window.
+                print()
+                print(reader.command(a.raw, quiet_for=1.0).strip())
+                return 0
 
             if a.info:
                 for k, v in reader.version().items():
