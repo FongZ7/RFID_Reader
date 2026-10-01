@@ -1,0 +1,26 @@
+[Unit]
+Description=RFD4031 RFID API (REST + MQTT)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/RFID_Reader
+# leave RFID_DEVICE unset to autodetect - the sled's /dev/ttyACM number moves
+Environment=RFID_MS=1000
+Environment=RFID_DBM=10
+Environment=RFID_HOST=0.0.0.0
+Environment=RFID_PORT=8080
+# MQTT is off unless a broker is named
+Environment=MQTT_BROKER=ns.artroninnovative.co.th
+Environment=MQTT_PORT=1883
+Environment=MQTT_BASE=rfid
+ExecStart=/usr/bin/python3 /home/pi/RFID_Reader/rfid_api_server.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
