@@ -13,7 +13,8 @@ GET  /api/read        -> {"success":true,"count":2,"tags":["EPC1","EPC2"],"readA
 GET  /api/health      -> สถานะเครื่องอ่าน
 ```
 
-📖 **[คู่มือการใช้งานทีละขั้นตอน → MANUAL.md](MANUAL.md)**
+📖 **คู่มือการใช้งานทีละขั้นตอน** — [อ่านบนเว็บ (MANUAL.md)](MANUAL.md) ·
+[ดาวน์โหลดไฟล์ Word](docs/RFID_Reader-Manual-TH.docx)
 
 ---
 
@@ -142,9 +143,12 @@ curl http://<pi-ip>:8080/api/health
 | `requestId` | ข้อความอะไรก็ได้ เซิร์ฟเวอร์ใส่กลับมาในคำตอบ |
 | `replyTo` | ให้ตอบมาที่ topic นี้แทน `rfid/result` |
 
+แทน `<broker-host>` ด้วย hostname หรือ IP ของ broker ที่ใช้ — ถ้ายังไม่มีก็ติดตั้ง
+Mosquitto เองได้ (`sudo apt install mosquitto` แล้วใช้ `localhost`)
+
 ```bash
-mosquitto_sub -h ns.artroninnovative.co.th -t rfid/result &
-mosquitto_pub -h ns.artroninnovative.co.th -t rfid/read -m '{"requestId":"a1","ms":1000}'
+mosquitto_sub -h <broker-host> -t rfid/result &
+mosquitto_pub -h <broker-host> -t rfid/read -m '{"requestId":"a1","ms":1000}'
 ```
 
 ```json
@@ -228,7 +232,9 @@ RFID_Reader/
 ├── rfid-api.service     แม่แบบ systemd unit (__USER__, __DIR__, __PYTHON__)
 ├── requirements.txt
 ├── README.md
-└── MANUAL.md            คู่มือการใช้งานทีละขั้นตอน
+├── MANUAL.md            คู่มือการใช้งานทีละขั้นตอน
+└── docs/
+    └── RFID_Reader-Manual-TH.docx    คู่มือฉบับไฟล์ Word (สร้างจาก MANUAL.md)
 ```
 
 ---

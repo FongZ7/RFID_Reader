@@ -250,12 +250,20 @@ Environment=RFID_PORT=8080      # พอร์ต HTTP
 #Environment=RFID_MINRSSI=-60   # เอา # ออกถ้าจะใช้
 ```
 
-ถ้าจะใช้ MQTT ด้วยให้เอา `#` ออกจากสามบรรทัดนี้
+ถ้าจะใช้ MQTT ด้วยให้เอา `#` ออกจากสามบรรทัดนี้ และใส่ hostname หรือ IP ของ broker
+ที่ใช้งานแทน `<broker-host>`
 
 ```ini
-#Environment=MQTT_BROKER=ns.artroninnovative.co.th
+#Environment=MQTT_BROKER=<broker-host>
 #Environment=MQTT_PORT=1883
 #Environment=MQTT_BASE=rfid
+```
+
+ถ้ายังไม่มี broker ติดตั้งบน Pi เองได้ แล้วใช้ `localhost`
+
+```bash
+sudo apt install -y mosquitto mosquitto-clients
+sudo systemctl enable --now mosquitto
 ```
 
 บันทึกด้วย `Ctrl+O` `Enter` แล้วออกด้วย `Ctrl+X`
@@ -551,8 +559,8 @@ console.log(data.count, data.tags)
 ### MQTT (ถ้าเปิดไว้)
 
 ```bash
-mosquitto_sub -h ns.artroninnovative.co.th -t rfid/result &
-mosquitto_pub -h ns.artroninnovative.co.th -t rfid/read -m '{"requestId":"a1","ms":1000}'
+mosquitto_sub -h <broker-host> -t rfid/result &
+mosquitto_pub -h <broker-host> -t rfid/read -m '{"requestId":"a1","ms":1000}'
 ```
 
 ### สิ่งที่ฝั่งเรียกใช้ควรเผื่อไว้

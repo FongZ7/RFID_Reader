@@ -1,3 +1,6 @@
 # This repo is deployed on Raspberry Pi OS - keep LF in the repo and on checkout
 # so the systemd unit and the Python files never arrive with CRLF.
 * text=auto eol=lf
+
+# ไฟล์ Word สร้างจาก MANUAL.md - เป็น binary ไม่ต้อง diff
+*.docx -text -diff
