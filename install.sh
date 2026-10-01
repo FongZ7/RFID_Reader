@@ -32,13 +32,21 @@ if ! id -nG "$USER_NAME" | tr ' ' '\n' | grep -qx dialout; then
 fi
 
 echo "checking dependencies"
+# import importlib.util explicitly: plain "import importlib" does not guarantee
+# the util submodule is bound, and whether it happens to be depends on what else
+# the interpreter already imported.
 "$PYTHON" - <<'PY'
-import importlib, sys
-missing = [m for m in ("serial", "flask") if not importlib.util.find_spec(m)]
+import importlib.util
+import sys
+
+def have(mod):
+    return importlib.util.find_spec(mod) is not None
+
+missing = [m for m in ("serial", "flask") if not have(m)]
 if missing:
-    sys.exit("missing: %s - run: pip3 install -r requirements.txt" % ", ".join(missing))
+    sys.exit("  missing: %s\n  run: pip3 install -r requirements.txt" % ", ".join(missing))
 print("  pyserial, flask present")
-print("  waitress present" if importlib.util.find_spec("waitress")
+print("  waitress present" if have("waitress")
       else "  waitress NOT present - the Flask dev server will be used instead")
 PY
 
