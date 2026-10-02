@@ -221,6 +221,44 @@ request ถัดไปจะต่อใหม่ให้เอง รวม�
 
 ---
 
+## ให้ Pi ปล่อย Wi-Fi เอง (โหมด Access Point)
+
+ใช้เมื่อหน้างานไม่มีเน็ตเวิร์กให้ใช้ — Pi ปล่อย Wi-Fi ของตัวเอง แล้วมือถือ โน้ตบุ๊ก
+หรือเครื่องของลูกค้าเกาะเข้ามายิง API ได้เลย **sled ยังต่อ USB กับ Pi เหมือนเดิม**
+
+```bash
+./setup_ap.sh --ssid RFID-READER --password rfid12345
+```
+
+จากนั้นอุปกรณ์ที่เกาะ Wi-Fi นี้เรียก API ได้ที่ `10.42.0.1`
+
+```bash
+curl http://10.42.0.1:8080/api/health
+curl "http://10.42.0.1:8080/api/read?ms=1000"
+```
+
+| คำสั่ง | ทำอะไร |
+|---|---|
+| `./setup_ap.sh` | สร้าง/เปิด AP ด้วยค่าตั้งต้น |
+| `./setup_ap.sh --ssid X --password Y` | กำหนดชื่อและรหัส (รหัสอย่างน้อย 8 ตัว) |
+| `./setup_ap.sh --band a --channel 36` | ใช้ 5 GHz (ตั้งต้นเป็น 2.4 GHz เพราะไปได้ไกลและเข้ากันได้กว้างกว่า) |
+| `./setup_ap.sh --status` | ดูสถานะปัจจุบัน |
+| `./setup_ap.sh --off` | เลิกเป็น AP กลับไปเป็น client ตามเดิม |
+
+AP ขึ้นเองหลังรีบูต ใช้ NetworkManager (มีมาให้แล้วใน Raspberry Pi OS Bookworm)
+ตั้ง `ipv4.method shared` ให้ NetworkManager แจก DHCP และทำ NAT เอง
+ไม่ต้องตั้ง hostapd/dnsmasq ด้วยมือ
+
+> ⚠️ **Pi มีวิทยุ Wi-Fi ตัวเดียว** ตอนเป็น AP จะเกาะ Wi-Fi อื่นไม่ได้ ถ้ากำลัง SSH
+> เข้ามาทาง Wi-Fi จะหลุดทันที — ให้รันผ่านสาย LAN หรือหน้าจอต่อตรง
+> ถ้า Pi ต้องต่อเน็ตด้วย ให้ใช้สาย LAN ควบคู่กัน
+
+> ⚠️ **ตัว sled เองเชื่อม Wi-Fi นี้แล้วสั่งอ่านไม่ได้** ดูหัวข้อ
+> [Wi-Fi ในตัว sled ส่งข้อมูลแท็กไม่ได้](#wi-fi-ในตัว-sled-ส่งข้อมูลแท็กไม่ได้)
+> AP ตัวนี้มีไว้ให้ **ฝั่งที่เรียกใช้ API** เกาะ ไม่ใช่ให้ sled เกาะ
+
+---
+
 ## โครงสร้างไฟล์
 
 ```
@@ -229,6 +267,7 @@ RFID_Reader/
 ├── rfid_api_server.py   REST + MQTT, เครื่องอ่านตัวเดียวใต้ lock เดียว
 ├── rfid_cli.py          เครื่องมือทดสอบ + --sweep หากำลังส่งที่เหมาะสม
 ├── install.sh           ติดตั้ง service ให้ทำงานตอนเปิดเครื่อง
+├── setup_ap.sh          ตั้งให้ Pi ปล่อย Wi-Fi เอง (โหมด Access Point)
 ├── rfid-api.service     แม่แบบ systemd unit (__USER__, __DIR__, __PYTHON__)
 ├── requirements.txt
 ├── README.md
