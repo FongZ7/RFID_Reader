@@ -199,6 +199,27 @@ mosquitto_pub -h <broker-host> -t rfid/read -m '{"requestId":"a1","ms":1000}'
 | `MQTT_PORT` | `1883` | |
 | `MQTT_BASE` | `rfid` | คำนำหน้า topic |
 | `MQTT_USER` / `MQTT_PASS` | ไม่ตั้ง | |
+| `MQTT_CLIENT_ID` | `rfd4031-<hostname>-<machine-id>` | **ต้องไม่ซ้ำกันเมื่อมีหลายเครื่อง** — client id ซ้ำทำให้ broker ตัดเครื่องเดิมทิ้ง |
+
+### มีหลายเครื่อง
+
+ตั้งชื่อประจำเครื่องด้วยคำสั่งเดียว — จัดการ hostname, `MQTT_BASE` และ
+`MQTT_CLIENT_ID` ให้ครบ
+
+```bash
+./provision.sh --name robot01
+./provision.sh --show
+```
+
+ฝั่งควบคุมสั่งเจาะจงเครื่อง และฟังผลจากทุกเครื่องด้วย wildcard
+
+```bash
+mosquitto_pub -h <broker> -t rfid/robot01/read -m '{"requestId":"a1","ms":1000}'
+mosquitto_sub -h <broker> -t "rfid/+/result" -v
+mosquitto_sub -h <broker> -t "rfid/+/status" -v     # เครื่องไหนออนไลน์
+```
+
+รายละเอียดอยู่ใน [MANUAL.md หัวข้อติดตั้งหลายเครื่อง](MANUAL.md#เสริม--ติดตั้งหลายเครื่อง-หุ่นยนต์หลายตัว)
 
 ---
 
@@ -286,6 +307,7 @@ RFID_Reader/
 ├── install.sh           ติดตั้ง service ให้ทำงานตอนเปิดเครื่อง
 ├── setup_ap.sh          ตั้งให้ Pi ปล่อย Wi-Fi เอง (โหมด Access Point)
 ├── setup_mqtt.sh        ลง Mosquitto บน Pi แล้วชี้ service มาที่มัน
+├── provision.sh         ตั้งชื่อ/topic/client id ประจำเครื่อง (เมื่อมีหลายเครื่อง)
 ├── rfid-api.service     แม่แบบ systemd unit (__USER__, __DIR__, __PYTHON__)
 ├── requirements.txt
 ├── README.md

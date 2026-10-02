@@ -172,6 +172,29 @@ def http_read():
 
 
 # ---------------------------------------------------------------- MQTT
+def client_id():
+    """A client id that is unique per unit, even across identical images.
+
+    MQTT requires client ids to be unique on a broker: when a second client
+    connects with an id already in use, the broker drops the first one. Every
+    fresh Raspberry Pi OS install carries the same hostname, so a fleet built
+    from one image would have every unit kicking the others off, which looks
+    like reads failing at random rather than anything to do with MQTT.
+
+    /etc/machine-id is generated per installation, so it separates units that
+    were never renamed. MQTT_CLIENT_ID overrides the whole thing.
+    """
+    explicit = os.environ.get("MQTT_CLIENT_ID")
+    if explicit:
+        return explicit
+    host = (platform.node() or "pi").lower()
+    try:
+        with open("/etc/machine-id") as f:
+            return "rfd4031-%s-%s" % (host, f.read().strip()[:8])
+    except OSError:
+        return "rfd4031-%s" % host              # not Linux, or no machine-id
+
+
 def mqtt_loop():
     import paho.mqtt.client as mqtt
 
@@ -216,11 +239,11 @@ def mqtt_loop():
             out["requestId"] = req_id
         client.publish(reply_to, json.dumps(out), qos=1)
 
+    cid = client_id()
     try:
-        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
-                             client_id="rfd4031-%s" % platform.node().lower())
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=cid)
     except (AttributeError, TypeError):
-        client = mqtt.Client(client_id="rfd4031-%s" % platform.node().lower())   # paho 1.x
+        client = mqtt.Client(client_id=cid)                                      # paho 1.x
     if MQTT_USER:
         client.username_pw_set(MQTT_USER, MQTT_PASS)
     client.on_connect = on_connect
@@ -263,6 +286,7 @@ def main():
 
     if MQTT_BROKER:
         log("  mqtt     : %s:%d  %s/read -> %s/result" % (MQTT_BROKER, MQTT_PORT, MQTT_BASE, MQTT_BASE))
+        log("  clientId : %s" % client_id())
         threading.Thread(target=mqtt_loop, name="mqtt", daemon=True).start()
     else:
         log("  mqtt     : off (set MQTT_BROKER to enable)")
