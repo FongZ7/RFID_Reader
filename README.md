@@ -128,6 +128,23 @@ curl http://<pi-ip>:8080/api/health
 ตั้ง `MQTT_BROKER` แล้วเซิร์ฟเวอร์จะรับคำสั่งทาง MQTT ด้วย เหมาะกับกรณีที่ฝั่งลูกค้า
 ไม่ควรต้องต่อเข้า Pi โดยตรง เพราะทั้งสองฝ่ายต่อ **ออก** ไปหา broker
 
+ถ้าไม่มี broker อยู่แล้ว ติดตั้งบน Pi เองได้ด้วยคำสั่งเดียว — ลง Mosquitto
+ตั้งค่า และชี้ service มาที่มันให้เสร็จ
+
+```bash
+./setup_mqtt.sh                             # เปิดให้ทุกคนในวง LAN
+./setup_mqtt.sh --user bot --password s3cret1234
+./setup_mqtt.sh --off                       # เลิกใช้ MQTT (REST ยังทำงาน)
+```
+
+```
+[หุ่นยนต์] --MQTT--> [Pi: mosquitto] --> [Pi: rfid-api] --USB/ZETI--> [sled]
+[หุ่นยนต์] --REST--------------------> [Pi: rfid-api] --USB/ZETI--> [sled]
+```
+
+> **sled ไม่ได้เป็น MQTT client และไม่เคยเห็น MQTT เลย** — มันถูกสั่งผ่าน USB เสมอ
+> MQTT ตรงนี้คือช่องทางให้หุ่นยนต์คุยกับ **Pi** เป็นทางเลือกแทน REST เท่านั้น
+
 | Topic | ทิศทาง | Payload |
 |---|---|---|
 | `rfid/read` | ลูกค้า → Pi | อะไรก็ได้ ว่างก็ได้ |
@@ -268,6 +285,7 @@ RFID_Reader/
 ├── rfid_cli.py          เครื่องมือทดสอบ + --sweep หากำลังส่งที่เหมาะสม
 ├── install.sh           ติดตั้ง service ให้ทำงานตอนเปิดเครื่อง
 ├── setup_ap.sh          ตั้งให้ Pi ปล่อย Wi-Fi เอง (โหมด Access Point)
+├── setup_mqtt.sh        ลง Mosquitto บน Pi แล้วชี้ service มาที่มัน
 ├── rfid-api.service     แม่แบบ systemd unit (__USER__, __DIR__, __PYTHON__)
 ├── requirements.txt
 ├── README.md

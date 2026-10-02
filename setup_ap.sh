@@ -33,7 +33,7 @@ while [ $# -gt 0 ]; do
         --name)     CON_NAME="$2"; shift 2 ;;
         --status)   ACTION="status"; shift ;;
         --off)      ACTION="off"; shift ;;
-        -h|--help)  sed -n '2,16p' "$0" | sed 's/^# \?//'; exit 0 ;;
+        -h|--help)  awk 'NR>1 && /^#/ {sub(/^# ?/, ""); print; next} NR>1 {exit}' "$0"; exit 0 ;;
         *) echo "unknown option: $1" >&2; exit 2 ;;
     esac
 done
